@@ -73,7 +73,7 @@ public class Plano {
 				sj.add(duracao.toMinutes() + " " + duracaoExtra.toMinutes() + " min");
 		}
 		for (Restricao r: restricoes)
-			sj.add(getDescricao());
+			sj.add(r.getDescricao());
 		return sj.toString();
 	}
 	

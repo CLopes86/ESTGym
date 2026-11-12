@@ -43,7 +43,7 @@ public class IntervaloMinimo implements Restricao {
 	@Override
 	public String getDescricao() {
 		// TODO Auto-generated method stub
-		return "intervalo minimo de " + quantidade + "" + nomeUnidade();
+		return "intervalo minimo de " + quantidade + " " + nomeUnidade();
 	}
 	
 	
