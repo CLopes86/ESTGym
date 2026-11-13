@@ -24,7 +24,7 @@ public class Registo {
 	 */
 	public Registo(Servico servico, Equipamento equipamento, LocalDateTime dataHora) {
 		this.servico = Objects.requireNonNull(servico);
-		this.equipamento = Objects.requireNonNull(servico);
+		this.equipamento = Objects.requireNonNull(equipamento);
 		this.dataHora = Objects.requireNonNull(dataHora);
 	}
 	

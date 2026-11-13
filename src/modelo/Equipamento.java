@@ -138,7 +138,7 @@ public abstract class Equipamento {
 		if (!podeUsar(m, agora))
 			throw new IllegalStateException("o membro " + m.getId() + " não pode usar " + nome);
 		ocupar(m, agora, getDuracao(m, agora));
-		m.addRegisto(new Registo(servico, this, agora));
+		m.addRegistos(new Registo(servico, this, agora));
 		aoUsar(m, agora);
 	}
 	
