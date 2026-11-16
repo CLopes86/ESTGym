@@ -7,7 +7,7 @@
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Swing](https://img.shields.io/badge/GUI-Swing-5382A1?style=for-the-badge&logo=java&logoColor=white)
 ![Eclipse](https://img.shields.io/badge/IDE-Eclipse-2C2255?style=for-the-badge&logo=eclipseide&logoColor=white)
-![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow?style=for-the-badge)
+![Status](https://img.shields.io/badge/status-conclu%C3%ADdo-brightgreen?style=for-the-badge)
 
 *1.º Trabalho Prático de **Padrões e Desenho de Software** · 2026/27*
 *Licenciatura em Informática e Multimédia · Universidade Politécnica de Castelo Branco*
@@ -24,7 +24,7 @@ se podem usar o serviço — com base no plano contratado, no histórico de util
 e no estado de cada equipamento.
 
 > 💡 O desafio principal: suportar **qualquer plano inventado por qualquer ginásio**
-> sem escrever código novo.
+> sem alterar as classes do modelo.
 
 ---
 
@@ -36,9 +36,10 @@ e no estado de cada equipamento.
 | 📋 | **Planos configuráveis** | Ex.: *"2 por dia, 30 min entre eles"* ou *"3 vezes por semana"* |
 | 🧘 | **Aulas de grupo** | Lotação máxima e entrada a meio sem reiniciar a aula |
 | 🚿 | **Duches com tempo extra** | Janela de tempo para ativar o tempo adicional |
-| 🏃 | **Personal trainers e consultas** | Duração definida pelo plano ou pelo ginásio |
+| 🏊 | **Piscina e personal trainers** | Duração definida pelo plano de cada membro |
+| 🥗 | **Consultas e massagens** | Duração definida pelo ginásio |
 | 📊 | **Histórico por membro** | Registo de cada serviço, equipamento e hora |
-| ⏱️ | **Relógio simulado** | Acelerar o tempo para testar regras semanais e mensais |
+| ⏱️ | **Relógio simulado** | Acelerar o tempo para testar regras diárias, semanais e mensais |
 
 ---
 
@@ -48,16 +49,20 @@ e no estado de cada equipamento.
 classDiagram
     direction LR
     Ginasio *-- Membro
+    Ginasio *-- Servico
     Ginasio *-- Equipamento
     Membro *-- Plano
     Membro *-- Registo
     Plano *-- Restricao
     Restricao <|.. MaxUsosPorPeriodo
     Restricao <|.. IntervaloMinimo
-    Equipamento <|-- PortaEntrada
-    Equipamento <|-- PortaSaida
-    Equipamento <|-- Duche
+    Equipamento <|-- EquipamentoDuracaoFixa
+    Equipamento <|-- EquipamentoDuracaoPlano
     Equipamento <|-- SalaAula
+    EquipamentoDuracaoFixa <|-- PortaEntrada
+    EquipamentoDuracaoFixa <|-- PortaSaida
+    EquipamentoDuracaoFixa <|-- PortaPiscina
+    EquipamentoDuracaoPlano <|-- Duche
     class Restricao { <<interface>> }
     class Equipamento { <<abstract>> }
 ```
@@ -65,13 +70,28 @@ classDiagram
 ### 🎯 Decisões de desenho
 
 - **Composição em vez de herança nos planos** — um plano é um conjunto de restrições
-  reutilizáveis. Um plano novo não exige nenhuma classe nova.
-- **Template Method nos equipamentos** — as verificações comuns ficam na classe base;
-  cada equipamento só redefine o que tem de diferente.
+  reutilizáveis (`MaxUsosPorPeriodo`, `IntervaloMinimo`). Um plano novo não exige
+  nenhuma classe nova.
+- **Template Method nos equipamentos** — as verificações comuns ficam na classe base
+  (`podeUsar` é `final`); cada equipamento só redefine o que tem de diferente.
 - **Polimorfismo** — a interface gráfica trata todos os equipamentos da mesma forma,
   sem `instanceof`.
-- **Separação modelo / interface** — a lógica não depende do Swing.
+- **Separação modelo / interface** — a lógica não depende do Swing nem do relógio:
+  a hora é sempre recebida por parâmetro.
 - **Encapsulamento por pacote** — só os equipamentos podem alterar o estado de um membro.
+- **Estado calculado** — membros e equipamentos guardam *até quando* estão ocupados,
+  em vez de um booleano, por isso libertam-se sozinhos sem temporizadores.
+
+---
+
+## 🧪 Testes
+
+As classes do modelo têm testes na pasta `testes/` (`TesteServico`, `TesteMembro`,
+`TesteEquipamento`), que cobrem as validações, os casos limite de tempo, as restrições
+dos planos, o tempo extra do duche e a lotação das aulas.
+
+A configuração de teste do enunciado (6 membros, 18 equipamentos e respetivos planos)
+é criada em `menu.Arranque`.
 
 ---
 
@@ -95,8 +115,9 @@ git clone https://github.com/CLopes86/ESTGym.git
 ESTGym/
 ├── src/
 │   ├── modelo/      → lógica do ginásio (membros, planos, equipamentos)
-│   ├── menu/        → interface gráfica (Swing)
+│   ├── menu/        → interface gráfica (Swing) e configuração de arranque
 │   └── pds/util/    → utilitários fornecidos pelo docente
+├── testes/          → testes das classes do modelo
 ├── art/             → ícones dos equipamentos
 └── relatorio/       → relatório do trabalho
 ```
@@ -107,13 +128,13 @@ ESTGym/
 
 - [x] Análise do problema e casos de uso
 - [x] Diagrama de classes
-- [ ] Modelo: serviços, membros e registos
-- [ ] Planos e restrições
-- [ ] Equipamentos
-- [ ] Configuração de teste
-- [ ] Ligação à interface gráfica
-- [ ] Testes de todos os casos de uso
-- [ ] Relatório
+- [x] Modelo: serviços, membros e registos
+- [x] Planos e restrições
+- [x] Equipamentos
+- [x] Configuração de teste
+- [x] Ligação à interface gráfica
+- [x] Testes de todos os casos de uso
+- [x] Relatório
 
 ---
 
@@ -124,6 +145,6 @@ ESTGym/
 **Cesaltino Rodrigues Lopes**
 
 [![GitHub](https://img.shields.io/badge/GitHub-CLopes86-181717?style=for-the-badge&logo=github)](https://github.com/CLopes86)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Cesaltino%20Lopes-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/cesaltino-lopes-55274b176)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Cesaltino%20Lopes-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/cesaltino-lopes)
 
 </div>
