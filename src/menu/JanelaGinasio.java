@@ -4,6 +4,12 @@ import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 
+import modelo.Equipamento;
+import modelo.Ginasio;
+import modelo.Membro;
+import modelo.Plano;
+import modelo.Registo;
+import modelo.Servico;
 import pds.util.RelogioSimulado;
 
 import java.awt.*;
@@ -30,6 +36,9 @@ public class JanelaGinasio extends JFrame {
     // constante para definir o formato a usar para a data e hora
     private static final DateTimeFormatter FORMATO_DATA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
+    // o ginásio que esta janela simula
+    private final Ginasio ginasio;
+
     // Elementos gráficos
     private final DefaultListModel<Integer> modeloMembros = new DefaultListModel<>();
     private final JList<Integer> listaMembros = new JList<>(modeloMembros);
@@ -52,8 +61,14 @@ public class JanelaGinasio extends JFrame {
     private final PainelBotoes painelBotoes = new PainelBotoes();
     private final Map<Integer, JButton> botoes = new LinkedHashMap<>();
 
-    public JanelaGinasio() {
-        super("ESTGym");
+    /**
+     * Cria a janela que simula o ginásio indicado.
+     * 
+     * @param ginasio o ginásio a simular
+     */
+    public JanelaGinasio(Ginasio ginasio) {
+        super("ESTGym - " + ginasio.getNome());
+        this.ginasio = ginasio;
         setupInterface();
         // Criar o timer que atualiza o estado dos botões a cada segundo (1000
         // milisegundos)
@@ -62,9 +77,8 @@ public class JanelaGinasio extends JFrame {
 
     /** Carrega a lista de membros. */
     private void carregarMembros() {
-        // TODO: obter os ids dos membros e adicioná-los ao modelo
-        for (int i = 1; i <= 3; i++) {
-            modeloMembros.addElement(i);
+        for (Membro m : ginasio.getMembros()) {
+            modeloMembros.addElement(m.getId());
         }
     }
 
@@ -75,10 +89,6 @@ public class JanelaGinasio extends JFrame {
      * @param iconesPronto array com os icones para livre ([0]) e ocupado ([1])
      */
     public void addEquipamento(int id, Icon icones[]) {
-        // TODO colocar as informações certas
-        String nome = "Equipamento X";
-        boolean disponivel = true;
-
         if (!SwingUtilities.isEventDispatchThread()) {
             SwingUtilities.invokeLater(() -> addEquipamento(id, icones));
             return;
@@ -86,6 +96,13 @@ public class JanelaGinasio extends JFrame {
         if (botoes.containsKey(id)) {
             return; // já existe
         }
+        Equipamento equipamento = ginasio.getEquipamento(id);
+        if (equipamento == null) {
+            throw new IllegalArgumentException("não existe o equipamento com id " + id);
+        }
+        String nome = equipamento.getNome();
+        boolean disponivel = !equipamento.estaOcupado(RelogioSimulado.getTempoAtual());
+
         Icon iconPronto = icones[0];
         Icon iconEmUso = icones[1];
 
@@ -119,15 +136,21 @@ public class JanelaGinasio extends JFrame {
      * @param source        o botão que foi pressionado
      */
     protected void usarEquipamento(int equipamentoId, JButton source) {
-        // TODO: pedir qual o membro que está a tentar usar o equipamento
-        Object m = pedirMembro(source);
+        Membro m = pedirMembro(source);
         if (m == null)
             return;
 
-        // TODO ver se pode usar o equipamento
-        if (Math.abs(2) == -2) {
-            // TODO se sim usar
-            botoes.get(equipamentoId).setEnabled(false);
+        // a hora é lida uma só vez, para todas as verificações usarem a mesma
+        Equipamento equipamento = ginasio.getEquipamento(equipamentoId);
+        LocalDateTime agora = RelogioSimulado.getTempoAtual();
+        if (equipamento.podeUsar(m, agora)) {
+            equipamento.usar(m, agora);
+            // uma aula, por exemplo, só fica ocupada quando está cheia
+            source.setEnabled(!equipamento.estaOcupado(agora));
+            // se o membro estiver selecionado, mostra logo o novo registo
+            Integer selecionado = listaMembros.getSelectedValue();
+            if (selecionado != null && selecionado == m.getId())
+                atualizarTabelas(selecionado);
         } else {
             // senão avisar que não pode usar
             JOptionPane.showMessageDialog(source, "Não pode usar este equipamento!", "Uso não autorizado",
@@ -140,16 +163,17 @@ public class JanelaGinasio extends JFrame {
      * identificação)
      * 
      * @param source botão que foi premido (para alinhar a mensagem de erro)
-     * @return o memebro identificado, ou null se não existir
+     * @return o membro identificado, ou null se não existir ou se o pedido for
+     *         cancelado
      */
-    private Object pedirMembro(JButton source) {
-        Object m = null;
+    private Membro pedirMembro(JButton source) {
+        Membro m = null;
         try {
             String code = JOptionPane.showInputDialog(source, "Id do membro?");
-            int id = Integer.parseInt(code);
-
-            // TODO ver qual o membro com o id introduzido, se algum
-
+            if (code == null)
+                return null; // o utilizador cancelou
+            int id = Integer.parseInt(code.trim());
+            m = ginasio.getMembro(id);
         } catch (Exception e) {
             // em caso de erro podem ser enviadas várias exceções, este catch apanha todas
         }
@@ -170,8 +194,8 @@ public class JanelaGinasio extends JFrame {
                 boolean cellHasFocus) {
             int id = (int) value;
 
-            // TODO colocar aqui o nome do membro com o id indicado
-            String nome = "Um Membro";
+            Membro m = ginasio.getMembro(id);
+            String nome = m != null ? m.getNome() : "?";
 
             return super.getListCellRendererComponent(list, nome, index, isSelected, cellHasFocus);
         }
@@ -189,25 +213,23 @@ public class JanelaGinasio extends JFrame {
         modeloServicos.setRowCount(0);
         modeloUsos.setRowCount(0);
 
-        // TODO ver se membro existe, se não existir sai
-        if (Math.abs(2) == -2) {
+        Membro m = ginasio.getMembro(membroId);
+        if (m == null) {
             return;
         }
-        // TODO: para cada serviço contratado indicar o nome do serviço e a descrição do
-        // respetivo contrato
-        for (int i = 0; i < 2; i++) {
-            String nome = "Nome serviço";
-            String descricao = "Plano de acesso";
+        // para cada serviço contratado: o nome do serviço e a descrição do plano
+        for (Map.Entry<Servico, Plano> contrato : m.getPlanos().entrySet()) {
+            String nome = contrato.getKey().getNome();
+            String descricao = contrato.getValue().getDescricao();
 
             modeloServicos.addRow(new String[] { nome, descricao });
         }
 
-        // TODO Para cada registo indicar o nome do serviço, a descrição do equipamento
-        // e a data e hora de uso
-        for (int i = 0; i < 2; i++) {
-            String nome = "Nome serviço";
-            String descricao = "";
-            LocalDateTime dataUso = RelogioSimulado.getTempoAtual();
+        // para cada registo: o nome do serviço, o nome do equipamento e a data e hora
+        for (Registo r : m.getRegistos()) {
+            String nome = r.getServico().getNome();
+            String descricao = r.getEquipamento().getNome();
+            LocalDateTime dataUso = r.getDataHora();
             modeloUsos.addRow(new Object[] { nome, descricao, dataUso.format(FORMATO_DATA_HORA) });
         }
     }
@@ -216,13 +238,14 @@ public class JanelaGinasio extends JFrame {
      * Chamado a cada segundo: reflete o estado atual de cada equipamento
      */
     private void atualizarBotoes() {
+        LocalDateTime agora = RelogioSimulado.getTempoAtual();
         for (Map.Entry<Integer, JButton> e : botoes.entrySet()) {
             int equipamentoId = e.getKey();
             JButton botao = e.getValue();
 
-            // TODO saber o estado e o nome do equipamento associado ao botão
-            boolean ocupado = false;
-            String nome = "Nome equipamento";
+            Equipamento equipamento = ginasio.getEquipamento(equipamentoId);
+            boolean ocupado = equipamento.estaOcupado(agora);
+            String nome = equipamento.getNome();
 
             if (!botao.isEnabled() && !ocupado) {
                 botao.setEnabled(true);
@@ -259,8 +282,9 @@ public class JanelaGinasio extends JFrame {
         listaMembros.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         listaMembros.setCellRenderer(new MembroRenderer());
         listaMembros.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                atualizarTabelas(listaMembros.getSelectedValue());
+            Integer selecionado = listaMembros.getSelectedValue();
+            if (!e.getValueIsAdjusting() && selecionado != null) {
+                atualizarTabelas(selecionado);
             }
         });
         JScrollPane scrollLista = new JScrollPane(listaMembros);

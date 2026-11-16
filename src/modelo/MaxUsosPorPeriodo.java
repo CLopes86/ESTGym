@@ -30,14 +30,12 @@ public class MaxUsosPorPeriodo implements Restricao{
 
 	@Override
 	public boolean permite(List<Registo> usos, LocalDateTime agora) {
-		// TODO Auto-generated method stub
 		LocalDateTime inicio = periodo.inicio(agora);
 		int conta = 0;
-		// os registos estão por ordem cronológica: percorre de trás para a
-				// frente e pára no primeiro registo anterior ao início do período
-		for (int i = usos.size() -1; i >= 0; i--) {
-			if ((usos.get(i).getDataHora().isBefore(inicio)));
-			break;
+		for (int i = usos.size() - 1; i >= 0; i--) {
+			if (usos.get(i).getDataHora().isBefore(inicio))
+				break;
+			conta++;
 		}
 		return conta < max;
 	}
